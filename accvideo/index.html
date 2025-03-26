@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="description"
+        content="Multi-view Video Diffusion Model for 4D Generation">
+  <meta name="keywords" content="4D Generation">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AccVideo: Accelerating Video Diffusion Model with Synthetic Dataset</title>
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PYVRSFMDRL"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+
+    function gtag() {
+      dataLayer.push(arguments);
+    }
+
+    gtag('js', new Date());
+
+    gtag('config', 'G-PYVRSFMDRL');
+  </script>
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
+        rel="stylesheet">
+
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+  <!-- <link rel="icon" href="./static/images/favicon.svg"> -->
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+  <script src="./static/js/bulma-carousel.min.js"></script>
+  <script src="./static/js/bulma-slider.min.js"></script>
+  <script src="./static/js/index.js"></script>
+  <style>
+    .flex > div {
+          width: calc(100% / 3 - 5px * 2 / 3);
+          margin-top: 2.5px;
+          margin-bottom: 2.5px;
+          position: relative;
+      }
+
+      .flex {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: space-between;
+          padding: 0 5px;
+      }
+       @media (max-width: 720px) {
+                .flex-dynamic > div {
+                    width: calc(100% / 2 - 5px / 2);
+                }
+            }
+      @media (max-width: 512px) {
+                .flex-dynamic > div,
+                .flex-dynamic-1 > div {
+                    width: 100%;
+                }
+
+                .content {
+                    padding: 0 12px;
+                }
+
+                .description {
+                    padding: 0 12px 20px 12px;
+                }
+
+                .title {
+                    padding: 20px 12px;
+                }
+
+                #logo {
+                    right: 12px;
+                    position: absolute;
+                }
+
+                .ruler-tight {
+                    font-size: 6px;
+                    column-gap: 0;
+                }
+
+                .title-long {
+                    font-size: 16px;
+                }
+
+                .flex-compact .full-screen-button {
+                    width: 100%;
+                    height: 100%;
+                    top: 0;
+                    right: 0;
+                    border-radius: 0;
+                }
+
+                table {
+                    width: 100%;
+                    font-size: 12px;
+                }
+
+                td {
+                    padding: 10px 4px;
+                }
+                td:first-child {
+                    padding-left: 12px;
+                }
+                td:last-child {
+                    padding-right: 12px;
+                }
+            }
+        @media (hover: hover) {
+                .prompt-wrap:hover .prompt,
+                .full-screen-wrap:hover .full-screen-button {
+                    opacity: 1;
+                    pointer-events: all;
+                }
+                #contributors a:hover {
+                    background: #222;
+                }
+                tbody tr:hover {
+                    background: #222;
+                }
+            }
+        .prompt {
+                max-width: calc(100% - 20px);
+                position: absolute;
+                background: rgba(0,0,0,0.5);
+                color: rgba(255,255,255,0.9);
+                font-size: 10px;
+                backdrop-filter: blur(10px);
+                bottom: 10px;
+                left: 10px;
+                padding: 5px 10px;
+                border-radius: 15px;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.5s;
+                box-sizing: border-box;
+            }
+  </style>
+  <link rel="icon" type="image/png" href="./static/images/logo.webp">
+</head>
+<body>
+
+<!--say sth-->
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title">AccVideo: Accelerating Video Diffusion Model with Synthetic Dataset</h1>
+          <div class="is-size-5 publication-authors">
+            <span class="author-block">
+            <a href="https://github.com/aejion">Haiyu Zhang</a><sup>1,2</sup>,</span>
+              <span class="author-block">
+              <a href="https://scholar.google.com/citations?user=3fWSC8YAAAAJ">Xinyuan Chen</a><sup>2</sup>,</span>
+              <span class="author-block">
+                <a href="https://wyhsirius.github.io/">Yaohui Wang</a><sup>2</sup>,</span>
+                <span class="author-block">
+              <a href="https://xh-liu.github.io/">Xihui Liu</a><sup>3</sup>,</span>
+              <span class="author-block">
+                <a href="https://irip.buaa.edu.cn/yhwang/index.html">Yunhong Wang</a><sup>1</sup>,</span>
+            <span class="author-block">
+              <span class="author-block">
+                <a href="https://scholar.google.com.hk/citations?user=gFtI-8QAAAAJ&hl=zh-CN">Yu Qiao</a><sup>2†</sup></span>
+          </div>
+          <div class="is-size-5 publication-authors">
+            <span class="author-block"><sup>1</sup>Beihang University, </span>
+            <span class="author-block"><sup>2</sup>Shanghai AI Laboratory, </span>
+            <span class="author-block"><sup>3</sup>The University of Hong Kong </span>
+          </div>
+
+          <!-- <div class="is-size-4 publication-authors"> -->
+            <!-- <span class="author-block"><b>NeurIPS 2024</b></span> -->
+          <!-- </div> -->
+
+          <div class="is-size-6 publication-authors">
+            <span class="author-block"><sup>†</sup>Corresponding author</span>
+          </div>
+
+          <div class="column has-text-centered">
+            <div class="publication-links">
+              <!-- PDF Link. TODO -->
+              <span class="link-block">
+                <a href="https://arxiv.org/abs/2503.19462"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="ai ai-arxiv"></i>
+                  </span>
+                  <span>arXiv</span>
+                </a>
+              </span>    
+              <!-- Video Link. TODO-->
+              <span class="link-block">
+                <a href="https://youtu.be/XIftKNcC4Bg"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="fab fa-youtube"></i>
+                  </span>
+                  <span>Video</span>
+                </a>
+              </span>
+              <!-- Code Link.  TODO-->
+              <span class="link-block">
+                <a href="https://github.com/aejion/AccVideo/"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="fab fa-github"></i>
+                  </span>
+                  <span>Code</span>
+                  </a>
+              </span>
+              <span class="link-block">
+                <a href="https://huggingface.co/aejion/AccVideo" class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                    🤗
+                  </span>
+                  <span>Model</span>
+                </a>
+              </span>
+
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="hero teaser">
+  <div class="container is-max-desktop">
+      <h2 class="subtitle has-text-centered">
+        <b>TL;DR:</b> We present a novel efficient distillation method to accelerate video diffusion models with synthetic datset. Our method is <b>8.5x faster</b>  than HunyuanVideo.
+      </h2>
+  </div>
+</section>
+
+
+<section class="section">
+    <!-- Abstract. -->
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-three-fifths">
+        <h2 class="title is-3">Abstract</h2>
+        <div class="container has-text-justified is-max-desktop">
+          <p>
+            Diffusion models have achieved remarkable progress in the field of video generation. However, their iterative denoising nature requires a large number of inference steps to generate a video, which is slow and computationally expensive. In this paper, we begin with a detailed analysis of the challenges present in existing diffusion distillation methods and propose a novel efficient method, namely <b>AccVideo</b>, to reduce the inference steps for accelerating video diffusion models with synthetic dataset. We leverage the pretrained video diffusion model to generate multiple valid denoising trajectories as our synthetic dataset, which eliminates the use of useless data points during distillation. Based on the synthetic dataset, we design a trajectory-based few-step guidance that utilizes key data points from the denoising trajectories to learn the noise-to-video mapping, enabling video generation in fewer steps. Furthermore, since the synthetic dataset captures the data distribution at each diffusion timestep, we introduce an adversarial training strategy to align the output distribution of the student model with that of our synthetic dataset, thereby enhancing the video quality. Extensive experiments demonstrate that our model achieves 8.5x improvements in generation speed compared to the teacher model while maintaining comparable performance. Compared to previous accelerating methods, our approach is capable of generating videos with higher quality and resolution, i.e., 5-seconds, 720x1280, 24fps.
+          </p>
+        </div>
+      </div>
+    </div>
+    <!--/ Abstract. -->
+    
+    <!--Video-->
+    <div class="container is-max-desktop">
+          <div class="item">
+          <div class="column-video" style="border-radius:10px;justify-content: center;align-items: center; font-size: 100px;">
+            <iframe width="960" height="540" src="https://www.youtube.com/embed/XIftKNcC4Bg?si=y6_9oVROAV5Kshhm" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+          </div>
+        </div>
+    </div>
+    <!--/ Paper video. -->
+  </div>
+     <!-- Method. -->
+     <div class="columns is-centered has-text-centered">
+      <div class="column is-three-fifths">
+        <h2 class="title is-3">Method</h2>
+        <div class="container has-text-justified is-max-desktop">
+          <p>
+            <b>(a)</b> Our method first designs a trajectory-based few-step guidance, which utilizes the key data points from the denoising trajectory to enable the student model to mimic the denoising process of the pretrained video diffusion model with fewer steps. <b>(b)</b> To fully exploit the data distribution at each diffusion timestep captured by our synthetic dataset, we propose an adversarial training strategy to align the output distribution of the student model with that captured by our synthetic dataset.
+          </p>
+          <img src="./static/images/pipeline.png">
+        </div>
+      </div>
+    </div>
+    <!--/ Method. -->
+
+</section>
+
+<section class="section">
+  <div class="columns is-centered">
+    <div class="column is-three-fifths">
+    <h2 class="title is-centered has-text-centered">Qualitative Results</h2>
+    <h3 class="is-centered has-text-centered is-size-5">Text-to-Video Generation (5s, 720x1280, 24fps)</h3>
+    <div class="flex flex-dynamic">
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/videos/0.mp4"></video>
+            <div class="prompt">A stylish woman walks down a Tokyo street filled with warm glowing neon and animated city signage. She wears a black leather jacket, a long red dress, and black boots, and carries a black purse. She wears sunglasses and red lipstick. She walks confidently and casually. The street is damp and reflective, creating a mirror effect of the colorful lights. Many pedestrians walk about.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/videos/1.mp4"></video>
+            <div class="prompt">An extreme close-up of an gray-haired man with a beard in his 60s. He is dressed in a wool coat suit coat with a button-down shirt. He wears a brown beret and glasses and has a very professorial appearance, depth of field, cinematic 35mm film.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/videos/2.mp4"></video>
+            <div class="prompt">A middle-aged sad bald man becomes happy as a wig of curly hair and sunglasses fall suddenly on his head.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/videos/3.mp4"></video>
+            <div class="prompt">A wide-angle view of a dramatic cliffside overlooking the ocean, waves crashing against the rocks far below.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/videos/4.mp4"></video>
+            <div class="prompt">A dog wearing virtual reality goggles in sunset.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/videos/5.mp4"></video>
+            <div class="prompt">Several giant wooly mammoths approach treading through a snowy meadow, their long wooly fur lightly blows in the wind as they walk, snow covered trees and dramatic snow capped mountains in the distance, mid afternoon light with wispy clouds and a sun high in the distance creates a warm glow, the low camera view is stunning capturing the large furry mammal with beautiful photography, depth of field.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/videos/6.mp4"></video>
+            <div class="prompt">A girl raises her left hand to cover her smiling mouth.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/videos/7.mp4"></video>
+            <div class="prompt">A litter of golden retriever puppies playing in the snow. Their heads pop out of the snow, covered in.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/videos/8.mp4"></video>
+            <div class="prompt">This close-up shot of a chameleon showcases its striking color changing capabilities. The background is blurred, drawing attention to the animal’s striking appearance.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/videos/9.mp4"></video>
+            <div class="prompt">A snowboarder carves down a steep slope, their board cutting swiftly through the snow. Powder sprays in all directions as they zigzag.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/videos/10.mp4"></video>
+            <div class="prompt">The camera follows behind a white vintage SUV with a black roof rack as it speeds up a steep dirt road surrounded by pine trees on a steep mountain slope.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/videos/11.mp4"></video>
+            <div class="prompt">A capybara relaxes in a wooden barrel filled with steaming hot spring water, its serene gaze adding tranquility to the scene. Perched atop its head is a vibrant orange, adding a playful contrast to its soft brown fur.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/videos/12.mp4"></video>
+            <div class="prompt">A retro, 70s Urban Grit style scene shows a lone astronaut wandering through a desolate Martian landscape. The colors are muted and dusty, with a worn-down, rugged space suit adding to the gritty, survivalist tone as they search for signs of life against the backdrop of a blood-red sky.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/videos/13.mp4"></video>
+            <div class="prompt">Medium shot, An adorable happy otter confidently stands on a surfboard wearing a yellow lifejacket, riding along turquoise tropical waters near lush tropical islands, 3D digital render art style.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/videos/14.mp4"></video>
+            <div class="prompt">An astronaut riding a horse, high definition, 4k.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/videos/15.mp4"></video>
+            <div class="prompt">An imposing, atomic-powered, retro-futuristic robot strides down the red carpet at a glamorous movie premiere. Its bulky, gleaming exosuit shines under the bright lights of camera flashes, reflecting the glitz of the event. The robot’s large, round helmet, with its glowing visor, gives it an air of mysterious authority, while the articulated joints in its thick, metallic arms and legs move with precision. Its jetpack, attached to its back, hums softly as it powers the machine forward, and the crowd marvels at the fusion of vintage design and futuristic technology.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/videos/16.mp4"></video>
+            <div class="prompt">A man is holding a bass and is positioned in front of a microphone in a room. He appears to be speaking or singing into the microphone.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/videos/17.mp4"></video>
+            <div class="prompt">A western princess, with sunlight shining through the leaves on her face, facial close-up.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/videos/18.mp4"></video>
+            <div class="prompt">An older man playing piano, lit from the side, advertising style.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/videos/19.mp4"></video>
+            <div class="prompt">A girl raises her left hand to cover her smiling mouth.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/videos/20.mp4"></video>
+            <div class="prompt">A birthday cake in the plate.</div>
+        <a class="full-screen-button"></a></div>
+    </div> 
+    <h3 class="is-centered has-text-centered is-size-5">Text-to-Video Generation (4s, 544x960, 24fps)</h3>
+    <div class="flex flex-dynamic">
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/0.mp4"></video>
+            <div class="prompt">A honeybee drifting between lavender blossoms. Each wingbeat slowed to a gentle wave, pollen particles floating in still air. In super slow motion, even the bee's compound eyes shimmer, revealing details normally invisible to the human eye.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/1.mp4"></video>
+            <div class="prompt">A man wearing a white protective suit, blue gloves, and a mask is holding a water gun and spraying water on the plants in a greenhouse.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/2.mp4"></video>
+            <div class="prompt">A personified cat wearing suits walking on the street.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/3.mp4"></video>
+            <div class="prompt">A very high waterfall pouring down.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/4.mp4"></video>
+            <div class="prompt">A western princess, with sunlight shining through the leaves on her face, facial close-up.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/5.mp4"></video>
+            <div class="prompt">A female knight holding a heavy sword stands in front of a Gothic castle in medieval style.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/6.mp4"></video>
+            <div class="prompt">A beautiful woman walking on the school playground. The sun shining on her face.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/7.mp4"></video>
+            <div class="prompt">The camera rotates around a large stack of vintage televisions all showing different programs.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/8.mp4"></video>
+            <div class="prompt">The monster stared at the food with wide eyes and open mouth. Its posture and expression convey a sense of innocence and playfulness.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/9.mp4"></video>
+            <div class="prompt">A panda in a scientist's lab coat, conducting experiments with beakers and test tubes.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/10.mp4"></video>
+            <div class="prompt">A toy robot wearing purple overalls and cowboy boots taking a pleasant stroll in Johannesburg South Africa during a beautiful sunset.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/11.mp4"></video>
+            <div class="prompt">In a modern, upscale hotel suite, the camera starts from the center of the living room. The room features light-colored sofas and large floor-to-ceiling windows overlooking the city's skyscrapers and night view.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/12.mp4"></video>
+            <div class="prompt">A snowboarder carves down a steep slope, their board cutting swiftly through the snow. Powder sprays in all directions as they zigzag.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/13.mp4"></video>
+            <div class="prompt">A beautiful woman and a handsome man kissing in the rain.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/14.mp4"></video>
+            <div class="prompt">The camera follows behind a white vintage SUV with a black roof rack as it speeds up a steep dirt road surrounded by pine trees on a steep mountain slope.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/15.mp4"></video>
+            <div class="prompt">A hand with delicate fingers picks up a bright yellow lemon from a wooden bowl filled with lemons and sprigs of mint against a peach-colored background. The hand gently tosses the lemon up and catches it, showcasing its smooth texture. A beige string bag sits beside the bowl, adding a rustic touch to the scene. Additional lemons, one halved, are scattered around the base of the bowl. The even lighting enhances the vibrant colors and creates a fresh, inviting atmosphere.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/16.mp4"></video>
+            <div class="prompt">A superintelligent humanoid robot waking up. The robot has a sleek metallic body with futuristic design features. Its glowing red eyes are the focal point, emanating a sharp, intense light as it powers on. The scene is set in a dimly lit, high-tech laboratory filled with glowing control panels, robotic arms, and holographic screens. The setting emphasizes advanced technology and an atmosphere of mystery. The ambiance is eerie and dramatic, highlighting the moment of awakening and the robots immense intelligence. Photorealistic style with a cinematic, dark sci-fi aesthetic. Aspect ratio: 16:9 --v 6.1</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/17.mp4"></video>
+            <div class="prompt">A majestic lion strides across the golden savanna, its powerful frame glistening under the warm afternoon sun. The tall grass ripples gently in the breeze, enhancing the lion's commanding presence. The tone is vibrant, embodying the raw energy of the wild. Low angle, steady tracking shot, cinematic.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/18.mp4"></video>
+            <div class="prompt">a cute raccoon playing guitar in the park at sunrise, oil painting style.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/19.mp4"></video>
+            <div class="prompt">A side profile shot of a woman with fireworks exploding in the distance beyond her.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/20.mp4"></video>
+            <div class="prompt">Stars, water, brilliantly, gorgeous large scale scene.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/21.mp4"></video>
+            <div class="prompt">Man eating a burger and leave bite marks.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/22.mp4"></video>
+            <div class="prompt">An elderly gentleman, with a serene expression, sits at the water's edge, a steaming cup of tea by his side. He is engrossed in his artwork, brush in hand, as he renders an oil painting on a canvas that's propped up against a small, weathered table. The sea breeze whispers through his silver hair, gently billowing his loose-fitting white shirt, while the salty air adds an intangible element to his masterpiece in progress. The scene is one of tranquility and inspiration, with the artist's canvas capturing the vibrant hues of the setting sun reflecting off the tranquil sea.</div>
+        <a class="full-screen-button"></a></div>
+        <div class="prompt-wrap full-screen-wrap">
+            <video autoplay="" playsinline="" muted="" loop="" src="./static/medium_videos/23.mp4"></video>
+            <div class="prompt">A fluffy orange cat sits comfortably on a soft, patterned rug, carefully chewing on a tender piece of chicken. The camera begins directly in front, capturing the cat’s bright eyes, which flicker between its meal and the vibrant TV screen in the background. Slowly, the camera starts to rotate, revealing the side profile of the cat, its sharp whiskers twitching as it savors each bite. As the camera continues its smooth 180-degree journey, the back of the cat comes into view. Its striped tail is curled neatly beside it, and the gentle glow from the TV reflects softly on its fur, creating a serene and intimate moment of quiet contentment.</div>
+        <a class="full-screen-button"></a></div>
+    </div> 
+  </div> 
+</section>
+
+<section class="section" id="BibTeX">
+
+    <div class="container is-max-desktop content">
+  
+    <h2 class="title">BibTeX</h2>
+  
+      <pre><code>@article{zhang2025accvideo,
+    title={AccVideo: Accelerating Video Diffusion Model with Synthetic Dataset},
+    author={Zhang, Haiyu and Chen, Xinyuan and Wang, Yaohui and Liu, Xihui and Wang, Yunhong and Qiao, Yu},
+    journal={arXiv preprint arXiv:2503.19462},
+    year={2025}
+  }</code></pre>
+  
+   </div>
+  
+  </section>
+
+
+<!--/TODO: insert citation. -->
+<!--TODO: modeify bibtex-->
+
+
+
+<footer class="footer">
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="content">
+          <p>
+            This website is licensed under a <a rel="license"
+                                                href="http://creativecommons.org/licenses/by-sa/4.0/">Creative
+            Commons Attribution-ShareAlike 4.0 International License</a>.
+          </p>
+          <p>
+            Thanks for Nerfie for release their project page code. We borrow their <a
+              href="https://github.com/nerfies/nerfies.github.io">website code</a> to construct this website.
+            
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
